@@ -36,10 +36,15 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Output
 
-This code can be re-run (by modifying the code to change the selected
-`DetentConfig` from one of the predefined configurations or by making your own)
-to produce various behaviors. Additionally, at the end of each demo, it will
-play a haptic buzz / click using the motor.
+The haptics (detent configuration, click/buzz) can be configured dynamically at
+run-time using the provided CLI, see screenshot below:
+
+![CleanShot 2023-06-23 at 08 45 26](https://github.com/esp-cpp/bldc_test_stand/assets/213467/912aae32-a434-4969-8309-af42a4f5f4c7)
+
+As you can see, the cli also allows you to start and stop the haptic engine
+(default is off when the program starts) and allows you to query the position of
+the motor based on the current detent config. The default detent config is the
+unbounded_no_detents configuration.
 
 For more information, see the documentation or the original PR:
 https://github.com/esp-cpp/espp/pull/60
