@@ -7,6 +7,7 @@
 #include "bldc_haptics.hpp"
 #include "bldc_motor.hpp"
 #include "butterworth_filter.hpp"
+#include "cli.hpp"
 #include "lowpass_filter.hpp"
 #include "mt6701.hpp"
 #include "task.hpp"
@@ -21,6 +22,8 @@ static constexpr int I2C_FREQ_HZ = (400 * 1000);
 static constexpr int I2C_TIMEOUT_MS = (10);
 
 extern "C" void app_main(void) {
+  espp::Cli::configure_stdin_stdout();
+
   espp::Logger logger({.tag = "BLDC Test Stand", .level = espp::Logger::Verbosity::DEBUG});
 
   logger.info("Bootup");
@@ -134,37 +137,7 @@ extern "C" void app_main(void) {
               .output_min = -20.0,      // angle pid works on velocity (rad/s)
               .output_max = 20.0,       // angle pid works on velocity (rad/s)
           },
-      .log_level = espp::Logger::Verbosity::INFO});
-
-  auto print_detent_config = [&logger](const auto &detent_config) {
-    if (detent_config == espp::detail::UNBOUNDED_NO_DETENTS) {
-      logger.info("Setting detent config to UNBOUNDED_NO_DETENTS");
-    }
-    if (detent_config == espp::detail::BOUNDED_NO_DETENTS) {
-      logger.info("Setting detent config to BOUNDED_NO_DETENTS");
-    }
-    if (detent_config == espp::detail::MULTI_REV_NO_DETENTS) {
-      logger.info("Setting detent config to MULTI_REV_NO_DETENTS");
-    }
-    if (detent_config == espp::detail::ON_OFF_STRONG_DETENTS) {
-      logger.info("Setting detent config to ON_OFF_STRONG_DETENTS");
-    }
-    if (detent_config == espp::detail::COARSE_VALUES_STRONG_DETENTS) {
-      logger.info("Setting detent config to COARSE_VALUES_STRONG_DETENTS");
-    }
-    if (detent_config == espp::detail::FINE_VALUES_NO_DETENTS) {
-      logger.info("Setting detent config to FINE_VALUES_NO_DETENTS");
-    }
-    if (detent_config == espp::detail::FINE_VALUES_WITH_DETENTS) {
-      logger.info("Setting detent config to FINE_VALUES_WITH_DETENTS");
-    }
-    if (detent_config == espp::detail::MAGNETIC_DETENTS) {
-      logger.info("Setting detent config to MAGNETIC_DETENTS");
-    }
-    if (detent_config == espp::detail::RETURN_TO_CENTER_WITH_DETENTS) {
-      logger.info("Setting detent config to RETURN_TO_CENTER_WITH_DETENTS");
-    }
-  };
+      .log_level = espp::Logger::Verbosity::WARN});
 
   using BldcHaptics = espp::BldcHaptics<BldcMotor>;
 
@@ -172,32 +145,135 @@ extern "C" void app_main(void) {
                                    .kp_factor = 2,
                                    .kd_factor_min = 0.01,
                                    .kd_factor_max = 0.04,
-                                   .log_level = espp::Logger::Verbosity::INFO});
+                                   .log_level = espp::Logger::Verbosity::WARN});
 
-  // auto detent_config = espp::detail::UNBOUNDED_NO_DETENTS;
-  // auto detent_config = espp::detail::BOUNDED_NO_DETENTS;
-  // auto detent_config = espp::detail::MULTI_REV_NO_DETENTS;
-  // auto detent_config = espp::detail::ON_OFF_STRONG_DETENTS;
-  auto detent_config = espp::detail::COARSE_VALUES_STRONG_DETENTS;
-  // auto detent_config = espp::detail::FINE_VALUES_NO_DETENTS;
-  // auto detent_config = espp::detail::FINE_VALUES_WITH_DETENTS;
-  // auto detent_config = espp::detail::MAGNETIC_DETENTS;
-  // auto detent_config = espp::detail::RETURN_TO_CENTER_WITH_DETENTS;
+  // set the default detent config to be unbounded no detents so that if
+  haptic_motor.update_detent_config(espp::detail::UNBOUNDED_NO_DETENTS);
 
-  logger.info("{}", detent_config);
+  auto root_menu = std::make_unique<cli::Menu>("haptics", "Haptic configuration menu");
+  root_menu->Insert(
+      "start",
+      [&](std::ostream &out) {
+        out << "Starting motor!\n";
+        haptic_motor.start();
+      },
+      "Start the motor");
+  root_menu->Insert(
+      "stop",
+      [&](std::ostream &out) {
+        out << "Stopping motor!\n";
+        haptic_motor.stop();
+      },
+      "Stop the motor");
+  root_menu->Insert(
+      "position",
+      [&](std::ostream &out) {
+        out << "Current position: " << haptic_motor.get_position() << "\n";
+      },
+      "Print the current position of the haptic motor");
+  root_menu->Insert(
+      "unbounded_no_detents",
+      [&](std::ostream &out) {
+        out << "Setting to unbounded no detents!\n";
+        haptic_motor.update_detent_config(espp::detail::UNBOUNDED_NO_DETENTS);
+      },
+      "Set the haptic config to unbounded no detents");
+  root_menu->Insert(
+      "bounded_no_detents",
+      [&](std::ostream &out) {
+        out << "Setting to bounded no detents!\n";
+        haptic_motor.update_detent_config(espp::detail::BOUNDED_NO_DETENTS);
+      },
+      "Set the haptic config to bounded no detents");
+  root_menu->Insert(
+      "multi_rev_no_detents",
+      [&](std::ostream &out) {
+        out << "Setting to multi rev no detents!\n";
+        haptic_motor.update_detent_config(espp::detail::MULTI_REV_NO_DETENTS);
+      },
+      "Set the haptic config to multi rev no detents");
+  root_menu->Insert(
+      "on_off_strong_detents",
+      [&](std::ostream &out) {
+        out << "Setting to on off strong detents!\n";
+        haptic_motor.update_detent_config(espp::detail::ON_OFF_STRONG_DETENTS);
+      },
+      "Set the haptic config to on off strong detents");
+  root_menu->Insert(
+      "coarse_values_strong_detents",
+      [&](std::ostream &out) {
+        out << "Setting to coarse values strong detents!\n";
+        haptic_motor.update_detent_config(espp::detail::COARSE_VALUES_STRONG_DETENTS);
+      },
+      "Set the haptic config to coarse values strong detents");
+  root_menu->Insert(
+      "fine_values_no_detents",
+      [&](std::ostream &out) {
+        out << "Setting to fine values no detents!\n";
+        haptic_motor.update_detent_config(espp::detail::FINE_VALUES_NO_DETENTS);
+      },
+      "Set the haptic config to fine values no detents");
+  root_menu->Insert(
+      "fine_values_with_detents",
+      [&](std::ostream &out) {
+        out << "Setting to fine values with detents!\n";
+        haptic_motor.update_detent_config(espp::detail::FINE_VALUES_WITH_DETENTS);
+      },
+      "Set the haptic config to fine values with detents");
+  root_menu->Insert(
+      "magnetic_detents",
+      [&](std::ostream &out) {
+        out << "Setting to magnetic detents!\n";
+        haptic_motor.update_detent_config(espp::detail::MAGNETIC_DETENTS);
+      },
+      "Set the haptic config to magnetic detents");
+  root_menu->Insert(
+      "return_to_center_with_detents",
+      [&](std::ostream &out) {
+        out << "Setting to return to center with detents!\n";
+        haptic_motor.update_detent_config(espp::detail::RETURN_TO_CENTER_WITH_DETENTS);
+      },
+      "Set the haptic config to return to center with detents");
+  root_menu->Insert(
+      "click",
+      [&](std::ostream &out, float strength) {
+        strength = std::clamp(strength, 0.0f, 10.0f);
+        espp::detail::HapticConfig config{
+            .strength = strength,
+            .frequency = 0.0f, // TODO: unused
+            .duration = 1ms,   // TODO: unused
+        };
+        haptic_motor.play_haptic(config);
+      },
+      "Play a haptic click / buzz with the given strength (suggested range 1.0 - 5.0)");
+  root_menu->Insert(
+      "color",
+      [](std::ostream &out) {
+        out << "Colors ON\n";
+        cli::SetColor();
+      },
+      "Enable colors in the cli");
+  root_menu->Insert(
+      "nocolor",
+      [](std::ostream &out) {
+        out << "Colors OFF\n";
+        cli::SetNoColor();
+      },
+      "Disable colors in the cli");
 
-  haptic_motor.update_detent_config(detent_config);
-  // this will start the haptic motor thread which will run in the background.
-  // If we want to change the detent config we can call update_detent_config()
-  // and it will update the detent config in the background thread.
-  haptic_motor.start();
-  print_detent_config(detent_config);
+  cli::Cli cli(std::move(root_menu));
+  // turn the colors on by default :)
+  cli::SetColor();
+  // add an exit action to stop the motor when the cli exits
+  cli.ExitAction([&](auto &out) {
+    out << "Exiting menu and disabling haptics!\n";
+    haptic_motor.stop();
+    out << "Goodbye and thanks for all the fish.\n";
+  });
 
-  while (true) {
-    std::this_thread::sleep_for(500ms);
-    if (driver->is_faulted()) {
-      logger.error("Driver is faulted, cannot continue haptics");
-      break;
-    }
-  }
+  espp::Cli input(cli);
+  input.SetInputHistorySize(10);
+  input.Start();
+
+  // if we've gotten here the cli has finished its session
 }
