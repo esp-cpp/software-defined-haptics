@@ -154,21 +154,41 @@ extern "C" void app_main(void) {
   root_menu->Insert(
       "start",
       [&](std::ostream &out) {
-        out << "Starting motor!\n";
-        haptic_motor.start();
+        if (!haptic_motor.is_running()) {
+          out << "Starting motor!\n";
+          haptic_motor.start();
+        } else {
+          out << "Motor already running!\n";
+        }
       },
       "Start the motor");
   root_menu->Insert(
       "stop",
       [&](std::ostream &out) {
-        out << "Stopping motor!\n";
-        haptic_motor.stop();
+        if (haptic_motor.is_running()) {
+          out << "Stopping motor!\n";
+          haptic_motor.stop();
+        } else {
+          out << "Motor already stopped!\n";
+        }
       },
       "Stop the motor");
   root_menu->Insert(
       "position",
       [&](std::ostream &out) {
         out << "Current position: " << haptic_motor.get_position() << "\n";
+      },
+      "Print the current position of the haptic motor");
+  root_menu->Insert(
+      "shaft_angle",
+      [&](std::ostream &out) {
+        out << "Current shaft angle: " << motor.get_shaft_angle() << " radians\n";
+      },
+      "Print the current position of the haptic motor");
+  root_menu->Insert(
+      "electrical_angle",
+      [&](std::ostream &out) {
+        out << "Current electrical angle: " << motor.get_electrical_angle() << " radians\n";
       },
       "Print the current position of the haptic motor");
   root_menu->Insert(
