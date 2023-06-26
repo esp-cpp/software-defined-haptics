@@ -41,6 +41,8 @@ run-time using the provided CLI, see screenshot below:
 
 ![CleanShot 2023-06-23 at 13 23 44](https://github.com/esp-cpp/bldc_test_stand/assets/213467/eb2a2f37-01d0-46e3-992a-48820401c0ab)
 
+https://github.com/esp-cpp/bldc_test_stand/assets/213467/d0974dc0-430a-4957-bd6d-f9841209f21d
+
 As you can see, the cli also allows you to start and stop the haptic engine
 (default is off when the program starts) and allows you to query the position of
 the motor based on the current detent config. The default detent config is the
