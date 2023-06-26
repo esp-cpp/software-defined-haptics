@@ -22,8 +22,6 @@ static constexpr int I2C_FREQ_HZ = (400 * 1000);
 static constexpr int I2C_TIMEOUT_MS = (10);
 
 extern "C" void app_main(void) {
-  espp::Cli::configure_stdin_stdout();
-
   espp::Logger logger({.tag = "BLDC Test Stand", .level = espp::Logger::Verbosity::DEBUG});
 
   logger.info("Bootup");
