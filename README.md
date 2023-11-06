@@ -89,7 +89,7 @@ following components:
 * `espp::BldcDriver`
 * `espp::BldcMotor`
 * `espp::BldcHaptics`
-* ESP-IDF's `i2c` peripheral driver
+* `espp::I2c`
 
 You combine the `Mt6701` and `BldcDriver` together when creating the `BldcMotor`
 and then simply pass the `BldcMotor` to the `BldcHaptics` component. At that
