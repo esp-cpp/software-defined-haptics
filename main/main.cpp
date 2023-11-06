@@ -1,25 +1,17 @@
 #include <chrono>
 #include <vector>
 
-#include <driver/i2c.h>
-
 #include "bldc_driver.hpp"
 #include "bldc_haptics.hpp"
 #include "bldc_motor.hpp"
 #include "butterworth_filter.hpp"
 #include "cli.hpp"
+#include "i2c.hpp"
 #include "lowpass_filter.hpp"
 #include "mt6701.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
-
-// pins for the bldc motor test stand with the TinyS3
-static constexpr auto I2C_NUM = (I2C_NUM_1);
-static constexpr auto I2C_SCL_IO = (GPIO_NUM_9);
-static constexpr auto I2C_SDA_IO = (GPIO_NUM_8);
-static constexpr int I2C_FREQ_HZ = (400 * 1000);
-static constexpr int I2C_TIMEOUT_MS = (10);
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "BLDC Test Stand", .level = espp::Logger::Verbosity::DEBUG});
@@ -27,30 +19,14 @@ extern "C" void app_main(void) {
   logger.info("Bootup");
 
   // make the I2C that we'll use to communicate with the mt6701 (magnetic encoder)
-  i2c_config_t i2c_cfg;
-  logger.info("initializing i2c driver...");
-  memset(&i2c_cfg, 0, sizeof(i2c_cfg));
-  i2c_cfg.sda_io_num = I2C_SDA_IO;
-  i2c_cfg.scl_io_num = I2C_SCL_IO;
-  i2c_cfg.mode = I2C_MODE_MASTER;
-  i2c_cfg.sda_pullup_en = GPIO_PULLUP_ENABLE;
-  i2c_cfg.scl_pullup_en = GPIO_PULLUP_ENABLE;
-  i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
-  auto err = i2c_param_config(I2C_NUM, &i2c_cfg);
-  if (err != ESP_OK)
-    logger.error("config i2c failed");
-  err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER, 0, 0, 0);
-  if (err != ESP_OK)
-    logger.error("install i2c driver failed");
-  // make some lambda functions we'll use to read/write to the mt6701
-  auto i2c_write = [](uint8_t dev_addr, uint8_t *data, size_t len) {
-    i2c_master_write_to_device(I2C_NUM, dev_addr, data, len, I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-  };
-
-  auto i2c_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t len) {
-    i2c_master_write_read_device(I2C_NUM, dev_addr, &reg_addr, 1, data, len,
-                                 I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-  };
+  espp::I2c i2c({
+      // pins for the bldc motor test stand with the TinyS3
+      .port = I2C_NUM_1,
+      .sda_io_num = GPIO_NUM_8,
+      .scl_io_num = GPIO_NUM_9,
+      .sda_pullup_en = GPIO_PULLUP_ENABLE,
+      .scl_pullup_en = GPIO_PULLUP_ENABLE,
+  });
 
   // make the velocity filter
   static constexpr float core_update_period = 0.001f; // seconds
@@ -75,12 +51,14 @@ extern "C" void app_main(void) {
   };
 
   // now make the mt6701 which decodes the data
-  std::shared_ptr<espp::Mt6701> mt6701 = std::make_shared<espp::Mt6701>(
-      espp::Mt6701::Config{.write = i2c_write,
-                           .read = i2c_read,
-                           .velocity_filter = filter_fn,
-                           .update_period = std::chrono::duration<float>(core_update_period),
-                           .log_level = espp::Logger::Verbosity::WARN});
+  std::shared_ptr<espp::Mt6701> mt6701 = std::make_shared<espp::Mt6701>(espp::Mt6701::Config{
+      .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
+                         std::placeholders::_3),
+      .read = std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
+                        std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+      .velocity_filter = filter_fn,
+      .update_period = std::chrono::duration<float>(core_update_period),
+      .log_level = espp::Logger::Verbosity::WARN});
 
   // now make the bldc driver
   std::shared_ptr<espp::BldcDriver> driver = std::make_shared<espp::BldcDriver>(
