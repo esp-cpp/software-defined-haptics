@@ -1,4 +1,4 @@
-# BLDC Motor Test Stand
+# Software Defined Haptics
 
 This project contains the MCAD and source files for a BLDC motor test stand,
 designed to enable running various experiments in openloop control, closed loop
