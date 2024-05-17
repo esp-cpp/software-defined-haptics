@@ -5,20 +5,31 @@ designed to enable running various experiments in openloop control, closed loop
 control, and user interface / haptics using a small BLDC motor that's commonly
 used in camera gimbals.
 
+The code supports running on the custom BLDC Test Stand (`TinyS3 Test Stand`),
+as well as on the `MotorGo-Mini`. You can select which hardware you want to run
+on via `menuconfig`.
+
 ## Hardware
 
-* TinyS3
-* BLDC Motor (I used [these A and B motors](https://www.aliexpress.us/item/3256802907900422.html) from aliexpress)
-* MT6701 Magnetic Encoder Breakout (I used [this purple one (color B)](https://www.aliexpress.us/item/3256804851103272.html) from aliexpress)
-* TMC6300 BOB
-* Mini solderless breadboard
-* 3d printed test stand enclosure (.stl and source files in the [mcad](./mcad) directory)
-* Benchtop power supply (currently running at 5V 1A so many things should work)
+Either:
+* TinyS3 Test Stand:
+  * TinyS3
+  * BLDC Motor (I used [these A and B motors](https://www.aliexpress.us/item/3256802907900422.html) from aliexpress)
+  * MT6701 Magnetic Encoder Breakout (I used [this purple one (color B)](https://www.aliexpress.us/item/3256804851103272.html) from aliexpress)
+  * TMC6300 BOB
+  * Mini solderless breadboard
+  * 3d printed test stand enclosure (.stl and source files in the [mcad](./mcad) directory)
+  * Benchtop power supply (currently running at 5V 1A so many things should work)
+or:
+* MotorGo-Mini
 
-:warning:
-> NOTE: you MUST make sure that you run this code with the
-> `zero_electrical_offset` value set to 0 (or not provided) at least once
-> otherwise the sample will not work and could potentially damage your motor.
+### Configure
+
+``` 
+idf.py menuconfig
+```
+
+Select which hardware you are building and deploying to.
 
 ### Build and Flash
 
@@ -82,7 +93,11 @@ You must run this calibration any time you change your hardware configuration
 
 ## Code Breakdown
 
-This example is relatively complex, but builds complex haptic behavior using the
+This example encapsulates the board support packages into one of two components:
+* `espp::TinyS3TestStand` (in this repo)
+* `espp::MotorGoMini` (in espp)
+
+These components build complex haptic behavior using the
 following components:
 
 * `espp::Mt6701`

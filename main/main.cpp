@@ -1,15 +1,11 @@
 #include <chrono>
 #include <vector>
 
-#include "bldc_driver.hpp"
 #include "bldc_haptics.hpp"
-#include "bldc_motor.hpp"
-#include "butterworth_filter.hpp"
 #include "cli.hpp"
-#include "i2c.hpp"
-#include "lowpass_filter.hpp"
-#include "mt6701.hpp"
-#include "task.hpp"
+
+#include "motorgo-mini.hpp"
+#include "tinys3_test_stand.hpp"
 
 using namespace std::chrono_literals;
 
@@ -18,86 +14,23 @@ extern "C" void app_main(void) {
 
   logger.info("Bootup");
 
-  // make the I2C that we'll use to communicate with the mt6701 (magnetic encoder)
-  espp::I2c i2c({
-      // pins for the bldc motor test stand with the TinyS3
-      .port = I2C_NUM_1,
-      .sda_io_num = GPIO_NUM_8,
-      .scl_io_num = GPIO_NUM_9,
-      .sda_pullup_en = GPIO_PULLUP_ENABLE,
-      .scl_pullup_en = GPIO_PULLUP_ENABLE,
-  });
-
-  // make the velocity filter
-  static constexpr float core_update_period = 0.001f; // seconds
-
-  // now make the mt6701 which decodes the data
-  using Encoder = espp::Mt6701<>;
-  std::shared_ptr<Encoder> mt6701 = std::make_shared<Encoder>(
-      Encoder::Config{.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
-                                         std::placeholders::_2, std::placeholders::_3),
-                      .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
-                                        std::placeholders::_2, std::placeholders::_3),
-                      .update_period = std::chrono::duration<float>(core_update_period),
-                      .log_level = espp::Logger::Verbosity::WARN});
-
-  // now make the bldc driver
-  std::shared_ptr<espp::BldcDriver> driver = std::make_shared<espp::BldcDriver>(
-      espp::BldcDriver::Config{// this pinout is configured for the TinyS3 connected to the
-                               // TMC6300-BOB in the BLDC Motor Test Stand
-                               .gpio_a_h = 1,
-                               .gpio_a_l = 2,
-                               .gpio_b_h = 3,
-                               .gpio_b_l = 4,
-                               .gpio_c_h = 5,
-                               .gpio_c_l = 21,
-                               .gpio_enable = 34, // connected to the VIO/~Stdby pin of TMC6300-BOB
-                               .gpio_fault = 36,  // connected to the nFAULT pin of TMC6300-BOB
-                               .power_supply_voltage = 5.0f,
-                               .limit_voltage = 5.0f,
-                               .log_level = espp::Logger::Verbosity::WARN});
-
-  // now make the bldc motor
-  using BldcMotor = espp::BldcMotor<espp::BldcDriver, Encoder>;
-  auto motor = BldcMotor(BldcMotor::Config{
-      // measured by setting it into ANGLE_OPENLOOP and then counting how many
-      // spots you feel when rotating it.
-      .num_pole_pairs = 7,
-      .phase_resistance =
-          5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
-      .kv_rating =
-          320, // tested by running velocity_openloop and seeing if the velocity is ~correct
-      .current_limit = 1.0f,        // Amps
-      .zero_electric_offset = 0.0f, // set to zero to always calibrate
-      // and it will be logged.
-      .sensor_direction =
-          espp::detail::SensorDirection::UNKNOWN, // set to unknown to always calibrate
-      .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
-      .driver = driver,
-      .sensor = mt6701,
-      .velocity_pid_config =
-          {
-              .kp = 0.010f,
-              .ki = 1.000f,
-              .kd = 0.000f,
-              .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
-              .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
-              .output_min = -1.0, // velocity pid works on current (if we have phase resistance)
-              .output_max = 1.0,  // velocity pid works on current (if we have phase resistance)
-          },
-      .angle_pid_config =
-          {
-              .kp = 7.000f,
-              .ki = 0.300f,
-              .kd = 0.010f,
-              .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
-              .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
-              .output_min = -20.0,      // angle pid works on velocity (rad/s)
-              .output_max = 20.0,       // angle pid works on velocity (rad/s)
-          },
-      .log_level = espp::Logger::Verbosity::INFO});
-
-  using BldcHaptics = espp::BldcHaptics<BldcMotor>;
+#if CONFIG_EXAMPLE_HARDWARE_MOTORGO_MINI
+#pragma message("Using MotorGo Mini hardware configuration")
+  logger.info("Using MotorGo Mini hardware configuration");
+  // we don't want to init both motors, so we'll pass in auto_init=false
+  espp::MotorGoMini motorgo_mini({.auto_init = false});
+  motorgo_mini.init_motor_channel_1();
+  auto &motor = motorgo_mini.motor1();
+  using BldcHaptics = espp::BldcHaptics<espp::MotorGoMini::BldcMotor>;
+#elif CONFIG_EXAMPLE_HARDWARE_TEST_STAND
+#pragma message("Using TinyS3 Test Stand hardware configuration")
+  logger.info("Using TinyS3 Test Stand hardware configuration");
+  espp::TinyS3TestStand test_stand(espp::Logger::Verbosity::INFO);
+  auto &motor = test_stand.motor();
+  using BldcHaptics = espp::BldcHaptics<espp::TinyS3TestStand::BldcMotor>;
+#else
+#error "No hardware configuration selected"
+#endif
 
   auto haptic_motor = BldcHaptics({.motor = motor,
                                    .kp_factor = 2,
