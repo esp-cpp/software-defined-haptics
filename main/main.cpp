@@ -18,7 +18,7 @@ extern "C" void app_main(void) {
 #pragma message("Using MotorGo Mini hardware configuration")
   logger.info("Using MotorGo Mini hardware configuration");
   // we don't want to init both motors, so we'll pass in auto_init=false
-  espp::MotorGoMini motorgo_mini({.auto_init = false});
+  auto &motorgo_mini = espp::MotorGoMini::get();
   motorgo_mini.init_motor_channel_1();
   auto &motor = motorgo_mini.motor1();
   using BldcHaptics = espp::BldcHaptics<espp::MotorGoMini::BldcMotor>;
