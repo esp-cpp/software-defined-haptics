@@ -7,15 +7,26 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        build:
+        - path: '.'
+          target: esp32s3
+          command: |
+            idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.test_stand" build
+        - path: '.'
+          target: esp32s3
+          command: |
+            idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.motorgo" build
+
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
 
     - name: Build Examples
       uses: espressif/esp-idf-ci-action@v1
       with:
-        esp_idf_version: release-v5.2
-        target: esp32s3
-        path: '.'
+        esp_idf_version: release-v5.4
+        target: ${{ matrix.build.target }}
+        path: ${{ matrix.build.path }}
+        command: ${{ matrix.build.command }}
