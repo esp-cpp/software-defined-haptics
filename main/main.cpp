@@ -33,7 +33,7 @@ extern "C" void app_main(void) {
 #error "No hardware configuration selected"
 #endif
 
-  auto haptic_motor = BldcHaptics(BldcHaptics::Config{.motor = *motor,
+  auto haptic_motor = BldcHaptics(BldcHaptics::Config{.motor = motor,
                                                       .kp_factor = 2,
                                                       .kd_factor_min = 0.01,
                                                       .kd_factor_max = 0.04,

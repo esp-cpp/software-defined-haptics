@@ -13,8 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: false
 
-    outputs:
-      zipfile-id: ${{ steps.zip_step.outputs.artifact-id }}
+    strategy:
+      matrix:
+        build:
+        - name: 'tinys3_test_stand'
+          path: '.'
+          target: esp32s3
+          command: |
+            idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.test_stand" build
+        - name: 'motorgo'
+          path: '.'
+          target: esp32s3
+          command: |
+            idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.motorgo" build
 
     steps:
     - name: Checkout repo
@@ -24,15 +35,14 @@ jobs:
       uses: espressif/esp-idf-ci-action@v1
       with:
         esp_idf_version: release-v5.4
-        target: esp32s3
-        path: '.'
-        command: 'idf.py build'
+        target: ${{ matrix.build.target }}
+        path: ${{ matrix.build.path }}
+        command: ${{ matrix.build.command }}
 
     - name: Upload Build Outputs
       uses: actions/upload-artifact@v4
-      id: zip_step
       with:
-        name: build-artifacts
+        name: ${{ matrix.build.name }}-build-artifacts
         path: |
           build/*.bin
           build/*.elf
@@ -41,17 +51,19 @@ jobs:
           build/flasher_args.json
           build/flash_args
 
+    - name: Zip up files for upload to release
+      if: ${{ github.event.release && github.event.action == 'published' }}
+      shell: bash
+      run: |
+        cd build
+        zip -r ../${{ matrix.build.name }}.zip *.bin *.elf bootloader/bootloader.bin partition_table/partition-table.bin flasher_args.json flash_args
+        cd ..
+
     - name: Attach files to release
       uses: softprops/action-gh-release@v2
       if: ${{ github.event.release && github.event.action == 'published' }}
       with:
-        files: |
-          build/*.bin
-          build/*.elf
-          build/bootloader/bootloader.bin
-          build/partition_table/partition-table.bin
-          build/flasher_args.json
-          build/flash_args
+        files: ${{ matrix.build.name }}.zip
 
   package:
     name: Package the binaries into an executables for Windows, MacOS, and Linux (Ubuntu)
@@ -59,9 +71,10 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
+        build: ['tinys3_test_stand', 'motorgo']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: esp-cpp/esp-packaged-programmer-action@v1.0.5
         with:
-          zipfile-id: ${{ needs.build.outputs.zipfile-id }}
-          programmer-name: 'software-defined-haptics_programmer'
+          zipfile-name: ${{ matrix.build }}-build-artifacts
+          programmer-name: 'software-defined-haptics-${{ matrix.build }}_programmer'
