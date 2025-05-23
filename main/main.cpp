@@ -19,24 +19,25 @@ extern "C" void app_main(void) {
   logger.info("Using MotorGo Mini hardware configuration");
   // we don't want to init both motors, so we'll pass in auto_init=false
   auto &motorgo_mini = espp::MotorGoMini::get();
-  motorgo_mini.init_motor_channel_1();
-  auto &motor = motorgo_mini.motor1();
+  auto motor1_config = motorgo_mini.default_motor1_config;
+  motorgo_mini.init_motor_channel_1(motor1_config);
+  auto motor = motorgo_mini.motor1();
   using BldcHaptics = espp::BldcHaptics<espp::MotorGoMini::BldcMotor>;
 #elif CONFIG_EXAMPLE_HARDWARE_TEST_STAND
 #pragma message("Using TinyS3 Test Stand hardware configuration")
   logger.info("Using TinyS3 Test Stand hardware configuration");
   espp::TinyS3TestStand test_stand(espp::Logger::Verbosity::INFO);
-  auto &motor = test_stand.motor();
+  auto motor = test_stand.motor();
   using BldcHaptics = espp::BldcHaptics<espp::TinyS3TestStand::BldcMotor>;
 #else
 #error "No hardware configuration selected"
 #endif
 
-  auto haptic_motor = BldcHaptics({.motor = motor,
-                                   .kp_factor = 2,
-                                   .kd_factor_min = 0.01,
-                                   .kd_factor_max = 0.04,
-                                   .log_level = espp::Logger::Verbosity::WARN});
+  auto haptic_motor = BldcHaptics(BldcHaptics::Config{.motor = *motor,
+                                                      .kp_factor = 2,
+                                                      .kd_factor_min = 0.01,
+                                                      .kd_factor_max = 0.04,
+                                                      .log_level = espp::Logger::Verbosity::WARN});
 
   // set the default detent config to be unbounded no detents so that if
   haptic_motor.update_detent_config(espp::detail::UNBOUNDED_NO_DETENTS);
@@ -73,13 +74,13 @@ extern "C" void app_main(void) {
   root_menu->Insert(
       "shaft_angle",
       [&](std::ostream &out) {
-        out << "Current shaft angle: " << motor.get_shaft_angle() << " radians\n";
+        out << "Current shaft angle: " << motor->get_shaft_angle() << " radians\n";
       },
       "Print the current position of the haptic motor");
   root_menu->Insert(
       "electrical_angle",
       [&](std::ostream &out) {
-        out << "Current electrical angle: " << motor.get_electrical_angle() << " radians\n";
+        out << "Current electrical angle: " << motor->get_electrical_angle() << " radians\n";
       },
       "Print the current position of the haptic motor");
   root_menu->Insert(
