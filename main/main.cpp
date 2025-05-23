@@ -148,6 +148,7 @@ extern "C" void app_main(void) {
       "Set the haptic config to return to center with detents");
   root_menu->Insert(
       "click",
+      // cppcheck-suppress constParameterReference
       [&](std::ostream &out, float strength) {
         strength = std::clamp(strength, 0.0f, 10.0f);
         espp::detail::HapticConfig config{
