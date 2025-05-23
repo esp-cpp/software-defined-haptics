@@ -18,6 +18,7 @@ jobs:
           target: esp32s3
           command: |
             idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.motorgo" build
+
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
