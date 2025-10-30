@@ -7,6 +7,12 @@ on:
     types: [published]
   workflow_dispatch:
 
+env:
+  APP_NAME: 'Software Defined Haptics'
+  IDF_VERSION: 'v5.5.1'
+  IDF_COMPONENT_MANAGER: "1" # whether to enable the component manager or not
+  FLASH_TOTAL_OVERRIDE: '2097152' # 2MB flash app partition for main app
+
 jobs:
   build:
 
@@ -34,7 +40,7 @@ jobs:
     - name: Build Main Code
       uses: espressif/esp-idf-ci-action@v1
       with:
-        esp_idf_version: release-v5.4
+        esp_idf_version: ${{ env.IDF_VERSION }}
         target: ${{ matrix.build.target }}
         path: ${{ matrix.build.path }}
         command: ${{ matrix.build.command }}
@@ -64,6 +70,19 @@ jobs:
       if: ${{ github.event.release && github.event.action == 'published' }}
       with:
         files: ${{ matrix.build.name }}.zip
+
+    - name: Determine Size Delta
+      # only run this on the motorgo build and if the release is published
+      if: ${{ github.event.release && github.event.action == 'published' && matrix.build.name == 'motorgo' }}
+      uses: esp-cpp/esp-idf-size-delta@v1
+      with:
+        app_name: ${{ env.APP_NAME }}
+        app_path: "."
+        idf_target: ${{ matrix.build.target }}
+        idf_version: ${{ env.IDF_VERSION }}
+        idf_component_manager: ${{ env.IDF_COMPONENT_MANAGER }}
+        flash_total_override: ${{ env.FLASH_TOTAL_OVERRIDE }}
+        post_comment: 'false'
 
   package:
     name: Package the binaries into an executables for Windows, MacOS, and Linux (Ubuntu)
