@@ -25,6 +25,7 @@ extern "C" void app_main(void) {
   logger.info("Configuring Motor 1");
   auto motor_config = motorgo_mini.default_motor1_config;
 #elif CONFIG_EXAMPLE_BLDC_MOTOR_2
+#pragma message("Using MotorGo Mini Motor 2")
   logger.info("Configuring Motor 2");
   auto motor_config = motorgo_mini.default_motor2_config;
 #else
