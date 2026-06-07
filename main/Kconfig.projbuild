@@ -1,19 +1,33 @@
 menu "Example Configuration"
 
-    choice EXAMPLE_HARDWARE
-        prompt "Hardware"
-        default EXAMPLE_HARDWARE_MOTORGO_MINI
-        help
-            Select the hardware to run this example on.
+  choice EXAMPLE_HARDWARE
+  prompt "Hardware"
+  default EXAMPLE_HARDWARE_MOTORGO_MINI
+  help
+    Select the hardware to run this example on.
 
-        config EXAMPLE_HARDWARE_MOTORGO_MINI
-            depends on IDF_TARGET_ESP32S3
-            bool "MotorGo Mini"
+  config EXAMPLE_HARDWARE_MOTORGO_MINI
+  depends on IDF_TARGET_ESP32S3
+  bool "MotorGo Mini"
 
-        config EXAMPLE_HARDWARE_TEST_STAND
-            depends on IDF_TARGET_ESP32S3
-            bool "BLDC Motor Test Stand (TinyS3)"
+  config EXAMPLE_HARDWARE_TEST_STAND
+  depends on IDF_TARGET_ESP32S3
+  bool "BLDC Motor Test Stand (TinyS3)"
 
-    endchoice
+  endchoice
+
+  choice EXAMPLE_BLDC_MOTOR
+  prompt "Which BLDC motor to control"
+  default EXAMPLE_BLDC_MOTOR_1
+  depends on EXAMPLE_HARDWARE_MOTORGO_MINI
+  help
+    Select the BLDC motor to control. This is only used for the MotorGo Mini hardware, which has two motors.
+
+  config EXAMPLE_BLDC_MOTOR_1
+  bool "Motor 1"
+  config EXAMPLE_BLDC_MOTOR_2
+  bool "Motor 2"
+
+  endchoice
 
 endmenu

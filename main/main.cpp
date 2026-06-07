@@ -19,9 +19,38 @@ extern "C" void app_main(void) {
   logger.info("Using MotorGo Mini hardware configuration");
   // we don't want to init both motors, so we'll pass in auto_init=false
   auto &motorgo_mini = espp::MotorGoMini::get();
-  auto motor1_config = motorgo_mini.default_motor1_config;
-  motorgo_mini.init_motor_channel_1(motor1_config);
+
+#if CONFIG_EXAMPLE_BLDC_MOTOR_1
+#pragma message("Using MotorGo Mini Motor 1")
+  logger.info("Configuring Motor 1");
+  auto motor_config = motorgo_mini.default_motor1_config;
+#elif CONFIG_EXAMPLE_BLDC_MOTOR_2
+#pragma message("Using MotorGo Mini Motor 2")
+  logger.info("Configuring Motor 2");
+  auto motor_config = motorgo_mini.default_motor2_config;
+#else
+#error "No motor selected"
+#endif
+
+  // velocity PID config:
+  motor_config.velocity_pid_config.kp = 0.010f;
+  motor_config.velocity_pid_config.ki = 0.100f;
+  motor_config.velocity_pid_config.kd = 0.000f;
+  // angle PID config:
+  motor_config.angle_pid_config.kp = 5.000f;
+  motor_config.angle_pid_config.ki = 1.000f;
+  motor_config.angle_pid_config.kd = 0.000f;
+
+#if CONFIG_EXAMPLE_BLDC_MOTOR_1
+  motorgo_mini.init_motor_channel_1(motor_config);
   auto motor = motorgo_mini.motor1();
+#elif CONFIG_EXAMPLE_BLDC_MOTOR_2
+  motorgo_mini.init_motor_channel_2(motor_config);
+  auto motor = motorgo_mini.motor2();
+#else
+#error "No motor selected"
+#endif
+
   using BldcHaptics = espp::BldcHaptics<espp::MotorGoMini::BldcMotor>;
 #elif CONFIG_EXAMPLE_HARDWARE_TEST_STAND
 #pragma message("Using TinyS3 Test Stand hardware configuration")
