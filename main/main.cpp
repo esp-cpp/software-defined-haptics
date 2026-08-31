@@ -56,6 +56,8 @@ extern "C" void app_main(void) {
 #pragma message("Using TinyS3 Test Stand hardware configuration")
   logger.info("Using TinyS3 Test Stand hardware configuration");
   auto &test_stand = espp::TinyS3TestStand::get();
+  auto motor_config = test_stand.default_motor_config;
+  test_stand.init_motor(motor_config);
   auto motor = test_stand.motor();
   using BldcHaptics = espp::BldcHaptics<espp::TinyS3TestStand::BldcMotor>;
 #else
